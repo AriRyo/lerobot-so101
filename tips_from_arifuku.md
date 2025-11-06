@@ -53,14 +53,26 @@ lerobot-record \
     --resume=true
 
 
+データセットのマージコマンド
+lerobot-edit-dataset \
+    --repo_id AriRyo/pickplace-v3_merged \
+    --operation.type merge \
+    --operation.repo_ids "['AriRyo/gray-pickplace-v3', 'AriRyo/redblack-pickplace-v3']" \
+    --push_to_hub true
+
+注意: LeRobot 0.4.1のバグ修正として、src/lerobot/datasets/dataset_tools.pyの259行目で
+video_files_size_in_mb=5000を設定しています（デフォルトは500MB）。
+これにより、ビデオが複数ファイルに分割されることを防ぎます。
+詳細: https://github.com/huggingface/lerobot/issues/2328
+
+
 学習コマンド
 ACT
 gray
 nohup lerobot-train   --dataset.repo_id=AriRyo/gray-pickplace-v3   --policy.type=act   --output_dir=outputs/train/act_gray-pickplace-v3   --job_name=act_gray-pickplace-v3   --policy.device=cuda   --wandb.enable=true   --policy.repo_id=AriRyo/gray-pickplace-v3_act-policy > output.log &
 
 redblack
-lerobot-train   --dataset.repo_id=AriRyo/redblack-pickplace-v3   --policy.type=act   --output_dir=outputs/train/act_redblack-pickplace-v3   --job_name=act_redblack-pickplace-v3   --policy.device=cuda   --wandb.enable=true   --policy.repo_id=AriRyo/redblack-pickplace-v3_act-policy --steps=10000
-
+lerobot-train   --dataset.repo_id=AriRyo/redblack-pickplace-v3   --policy.type=act   --output_dir=outputs/train/act_redblack-pickplace-v3   --job_name=act_redblack-pickplace-v3   --policy.device=cuda   --wandb.enable=true   --policy.repo_id=AriRyo/redblack-pickplace-v3_act-policy --steps=100000
 
 PI05(lerobot)
 gray
@@ -105,6 +117,8 @@ lerobot-record     --robot.type=so101_follower     --robot.port=/dev/ttyACM1    
 
 
 
-
+データセット上の評価
+uv run scripts/eval_test.py
+データセットIDとかはハードコードされているので、必要に応じて書き換える
 
 
