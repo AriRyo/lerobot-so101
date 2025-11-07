@@ -1,9 +1,4 @@
 
-
-
-
-
-
 テレオペのコマンド
 
 
@@ -121,4 +116,139 @@ lerobot-record     --robot.type=so101_follower     --robot.port=/dev/ttyACM1    
 uv run scripts/eval_test.py
 データセットIDとかはハードコードされているので、必要に応じて書き換える
 
+
+
+## Data Augmentation実験メモ
+
+### 0. 共通準備
+```
+export DA_BASE_ARGS="\
+    --dataset.repo_id=AriRyo/pickplace-v3_merged \
+    --policy.type=act \
+    --policy.device=cuda \
+    --policy.push_to_hub=true \
+    --wandb.enable=true \
+    --steps=60000 \
+    --batch_size=32 \
+    --num_workers=8 \
+    --save_checkpoint=true \
+    --eval_freq=0"
+```
+※ `TrainPipelineConfig` と `ImageTransformsConfig` を確認済み（src/lerobot/configs/train.py, src/lerobot/datasets/transforms.py）。ドット記法は辞書型 (`tfs`) には使えないため、JSON文字列でまとめて渡す点に注意。
+
+### 1. ベースライン (E0)
+```
+lerobot-train \
+    $DA_BASE_ARGS \
+    --job_name=act_da_e0_baseline \
+    --output_dir=outputs/train/act_da/e0_baseline \
+    --dataset.image_transforms.enable=false
+```
+
+### 2. 個別拡張 (E1)
+共通で `max_num_transforms=1` に設定し、`tfs` には対象となる変換のみを JSON 文字列で渡す。
+```
+# Brightness only
+export TFS_E1_BRIGHTNESS='{"brightness":{"weight":1.0,"type":"ColorJitter","kwargs":{"brightness":[0.8,1.2]}}}'
+lerobot-train $DA_BASE_ARGS \
+    --job_name=act_da_e1_brightness \
+    --policy.repo_id=AriRyo/pickplace-v3_merged_act-da-e1-brightness \
+    --output_dir=outputs/train/act_da/e1_brightness \
+    --dataset.image_transforms.enable=true \
+    --dataset.image_transforms.max_num_transforms=1 \
+    --dataset.image_transforms.tfs="$TFS_E1_BRIGHTNESS"
+
+# Contrast only
+export TFS_E1_CONTRAST='{"contrast":{"weight":1.0,"type":"ColorJitter","kwargs":{"contrast":[0.8,1.2]}}}'
+lerobot-train $DA_BASE_ARGS \
+    --job_name=act_da_e1_contrast \
+    --policy.repo_id=AriRyo/pickplace-v3_merged_act-da-e1-contrast \
+    --output_dir=outputs/train/act_da/e1_contrast \
+    --dataset.image_transforms.enable=true \
+    --dataset.image_transforms.max_num_transforms=1 \
+    --dataset.image_transforms.tfs="$TFS_E1_CONTRAST"
+
+# Hue only
+export TFS_E1_HUE='{"hue":{"weight":1.0,"type":"ColorJitter","kwargs":{"hue":[-0.05,0.05]}}}'
+lerobot-train $DA_BASE_ARGS \
+    --job_name=act_da_e1_hue \
+    --policy.repo_id=AriRyo/pickplace-v3_merged_act-da-e1-hue \
+    --output_dir=outputs/train/act_da/e1_hue \
+    --dataset.image_transforms.enable=true \
+    --dataset.image_transforms.max_num_transforms=1 \
+    --dataset.image_transforms.tfs="$TFS_E1_HUE"
+
+# Sharpness only
+export TFS_E1_SHARPNESS='{"sharpness":{"weight":1.0,"type":"SharpnessJitter","kwargs":{"sharpness":[0.5,1.5]}}}'
+lerobot-train $DA_BASE_ARGS \
+    --job_name=act_da_e1_sharpness \
+    --policy.repo_id=AriRyo/pickplace-v3_merged_act-da-e1-sharpness \
+    --output_dir=outputs/train/act_da/e1_sharpness \
+    --dataset.image_transforms.enable=true \
+    --dataset.image_transforms.max_num_transforms=1 \
+    --dataset.image_transforms.tfs="$TFS_E1_SHARPNESS"
+
+# Random Affine only
+export TFS_E1_AFFINE='{"affine":{"weight":1.0,"type":"RandomAffine","kwargs":{"degrees":[-5.0,5.0],"translate":[0.05,0.05]}}}'
+lerobot-train $DA_BASE_ARGS \
+    --job_name=act_da_e1_affine \
+    --policy.repo_id=AriRyo/pickplace-v3_merged_act-da-e1-affine \
+    --output_dir=outputs/train/act_da/e1_affine \
+    --dataset.image_transforms.enable=true \
+    --dataset.image_transforms.max_num_transforms=1 \
+    --dataset.image_transforms.tfs="$TFS_E1_AFFINE"
+```
+※ JSON 内のパラメータは `ImageTransformConfig` のデフォルト値を転記。レンジを変える場合は該当値を書き換える。
+
+### 3. 全拡張 (E2)
+```
+lerobot-train $DA_BASE_ARGS \
+    --job_name=act_da_e2_fullstack \
+    --policy.repo_id=AriRyo/pickplace-v3_merged_act-da-e2-fullstack \
+    --output_dir=outputs/train/act_da/e2_fullstack \
+    --dataset.image_transforms.enable=true \
+    --dataset.image_transforms.max_num_transforms=3 \
+    --dataset.image_transforms.random_order=true
+```
+
+### 4. Top-3組み合わせ (E3-1例)
+```
+export TFS_E3_TOP3='{"brightness":{"weight":1.0,"type":"ColorJitter","kwargs":{"brightness":[0.8,1.2]}},"contrast":{"weight":1.0,"type":"ColorJitter","kwargs":{"contrast":[0.8,1.2]}},"hue":{"weight":1.0,"type":"ColorJitter","kwargs":{"hue":[-0.05,0.05]}},"sharpness":{"weight":0.5,"type":"SharpnessJitter","kwargs":{"sharpness":[0.5,1.5]}},"affine":{"weight":0.5,"type":"RandomAffine","kwargs":{"degrees":[-5.0,5.0],"translate":[0.05,0.05]}}}'
+lerobot-train $DA_BASE_ARGS \
+    --job_name=act_da_e3_top3 \
+    --policy.repo_id=AriRyo/pickplace-v3_merged_act-da-e3-top3 \
+    --output_dir=outputs/train/act_da/e3_top3 \
+    --dataset.image_transforms.enable=true \
+    --dataset.image_transforms.max_num_transforms=2 \
+    --dataset.image_transforms.tfs="$TFS_E3_TOP3"
+```
+※ 重みはE1評価の結果で調整。`max_num_transforms=2` で同時適用を管理。
+
+### 5. 画像拡張の可視化
+```
+lerobot-imgtransform-viz \
+    --repo_id=AriRyo/pickplace-v3_merged \
+    --episodes='[0]' \
+    --image_transforms.enable=true \
+    --image_transforms.max_num_transforms=3 
+```
+`DatasetConfig` をそのままCLIで渡せるので、学習と同じ設定を確認可能。
+
+### 6. 評価手順
+学習完了後は `scripts/eval_policy.py` の `policy_id` と `eval_repo` を対象モデルに書き換えて実行。
+別リポジトリで評価する場合は `LeRobotDataset(eval_repo)` が読み取れるか事前確認。
+
+### 7. 背景Swap/Mask拡張の実装メモ
+- 実装場所: `src/lerobot/datasets/transforms.py`
+- `SharpnessJitter` と同様の `Transform` サブクラスを追加し、`ImageTransformsConfig.tfs` にエントリを足す。
+- コマンド例 (実装後):
+```
+export TFS_E4_SWAPMASK='{"swapmask":{"weight":1.0,"type":"SwapMaskTransform","kwargs":{"mask_ratio":0.4}}}'
+lerobot-train $DA_BASE_ARGS \
+    --job_name=act_da_swapmask \
+    --output_dir=outputs/train/act_da/e4_swapmask \
+    --dataset.image_transforms.enable=true \
+    --dataset.image_transforms.tfs="$TFS_E4_SWAPMASK"
+```
+`make_transform_from_config` にも新クラスを紐付けしておくこと。
 
