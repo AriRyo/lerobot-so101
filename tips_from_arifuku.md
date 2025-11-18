@@ -142,6 +142,7 @@ lerobot-train \
     $DA_BASE_ARGS \
     --job_name=act_da_e0_baseline \
     --output_dir=outputs/train/act_da/e0_baseline \
+    --policy.repo_id=AriRyo/pickplace-v3_merged_act-da-e0-baseline \
     --dataset.image_transforms.enable=false
 ```
 
@@ -207,7 +208,6 @@ lerobot-train $DA_BASE_ARGS \
     --policy.repo_id=AriRyo/pickplace-v3_merged_act-da-e2-fullstack \
     --output_dir=outputs/train/act_da/e2_fullstack \
     --dataset.image_transforms.enable=true \
-    --dataset.image_transforms.max_num_transforms=3 \
     --dataset.image_transforms.random_order=true
 ```
 
@@ -237,18 +237,3 @@ lerobot-imgtransform-viz \
 ### 6. 評価手順
 学習完了後は `scripts/eval_policy.py` の `policy_id` と `eval_repo` を対象モデルに書き換えて実行。
 別リポジトリで評価する場合は `LeRobotDataset(eval_repo)` が読み取れるか事前確認。
-
-### 7. 背景Swap/Mask拡張の実装メモ
-- 実装場所: `src/lerobot/datasets/transforms.py`
-- `SharpnessJitter` と同様の `Transform` サブクラスを追加し、`ImageTransformsConfig.tfs` にエントリを足す。
-- コマンド例 (実装後):
-```
-export TFS_E4_SWAPMASK='{"swapmask":{"weight":1.0,"type":"SwapMaskTransform","kwargs":{"mask_ratio":0.4}}}'
-lerobot-train $DA_BASE_ARGS \
-    --job_name=act_da_swapmask \
-    --output_dir=outputs/train/act_da/e4_swapmask \
-    --dataset.image_transforms.enable=true \
-    --dataset.image_transforms.tfs="$TFS_E4_SWAPMASK"
-```
-`make_transform_from_config` にも新クラスを紐付けしておくこと。
-
