@@ -248,6 +248,21 @@ class GridSelector:
         self.cols = cols
         self.display_scale = display_scale
         self.selected_cells: list[tuple[int, int]] = []
+        self._confirm_keys_down: set[str] = set()
+        self._keyboard_sequences = (
+            "<BackSpace>",
+            "<KeyPress-Return>",
+            "<KeyRelease-Return>",
+            "<KeyPress-space>",
+            "<KeyRelease-space>",
+            "<Escape>",
+            "s",
+            "S",
+            "n",
+            "N",
+            "q",
+            "Q",
+        )
         self.action: Optional[str] = None
         self.root = tk.Tk()
         self.root.title(window_title)
@@ -277,6 +292,7 @@ class GridSelector:
 
         if initial_cells:
             self.selected_cells = [tuple(cell) for cell in initial_cells]
+        self._confirm_keys_down.clear()
 
         self._draw_grid()
         self._draw_selection()
@@ -287,17 +303,7 @@ class GridSelector:
         )
         tk.Label(self.root, text=info).pack(pady=4)
 
-        self.canvas.bind("<Button-1>", self.on_click)
-        self.root.bind("<BackSpace>", self.on_undo)
-        self.root.bind("<Return>", self.finish)
-        self.root.bind("<space>", self.finish)
-        self.root.bind("<Escape>", self.skip)
-        self.root.bind("s", self.skip)
-        self.root.bind("S", self.skip)
-        self.root.bind("n", self.skip)
-        self.root.bind("N", self.skip)
-        self.root.bind("q", self.quit_episode)
-        self.root.bind("Q", self.quit_episode)
+        self._enable_user_input()
         self.root.protocol("WM_DELETE_WINDOW", self.skip)
 
     def update_image_and_title(
@@ -307,9 +313,7 @@ class GridSelector:
         initial_cells: Optional[list[tuple[int, int]]] = None,
     ) -> None:
         # 一時的にユーザー入力を無効化してレンダリング完了まで待機
-        self.canvas.unbind("<Button-1>")
-        for sequence in ("<BackSpace>", "<Return>", "<space>", "<Escape>", "s", "S", "n", "N", "q", "Q"):
-            self.root.unbind(sequence)
+        self._disable_user_input()
 
         self.image = new_image.copy()
         self.root.title(new_title)
@@ -336,23 +340,14 @@ class GridSelector:
         self.canvas.config(width=self.display_width, height=self.display_height)
         self.canvas.delete("grid")
         self.selected_cells = [tuple(cell) for cell in initial_cells] if initial_cells else []
+        self._confirm_keys_down.clear()
         self._draw_grid()
         self._draw_selection()
 
         self.root.update_idletasks()
 
         # 入力を再有効化
-        self.canvas.bind("<Button-1>", self.on_click)
-        self.root.bind("<BackSpace>", self.on_undo)
-        self.root.bind("<Return>", self.finish)
-        self.root.bind("<space>", self.finish)
-        self.root.bind("<Escape>", self.skip)
-        self.root.bind("s", self.skip)
-        self.root.bind("S", self.skip)
-        self.root.bind("n", self.skip)
-        self.root.bind("N", self.skip)
-        self.root.bind("q", self.quit_episode)
-        self.root.bind("Q", self.quit_episode)
+        self._enable_user_input()
 
     def run(self) -> str:
         self.action = None
@@ -419,6 +414,42 @@ class GridSelector:
                             tags="highlight",
                         )
 
+    def _enable_user_input(self) -> None:
+        self.canvas.bind("<Button-1>", self.on_click)
+        self.root.bind("<BackSpace>", self.on_undo)
+        self.root.bind("<KeyPress-Return>", self.on_confirm_key_press)
+        self.root.bind("<KeyRelease-Return>", self.on_confirm_key_release)
+        self.root.bind("<KeyPress-space>", self.on_confirm_key_press)
+        self.root.bind("<KeyRelease-space>", self.on_confirm_key_release)
+        self.root.bind("<Escape>", self.skip)
+        self.root.bind("s", self.skip)
+        self.root.bind("S", self.skip)
+        self.root.bind("n", self.skip)
+        self.root.bind("N", self.skip)
+        self.root.bind("q", self.quit_episode)
+        self.root.bind("Q", self.quit_episode)
+
+    def _disable_user_input(self) -> None:
+        self.canvas.unbind("<Button-1>")
+        for sequence in self._keyboard_sequences:
+            self.root.unbind(sequence)
+        self._confirm_keys_down.clear()
+
+    def on_confirm_key_press(self, event) -> None:
+        if event.keysym not in {"Return", "space"}:
+            return
+        if event.keysym in self._confirm_keys_down:
+            return
+        self._confirm_keys_down.add(event.keysym)
+
+    def on_confirm_key_release(self, event) -> None:
+        if event.keysym not in {"Return", "space"}:
+            return
+        if event.keysym not in self._confirm_keys_down:
+            return
+        self._confirm_keys_down.discard(event.keysym)
+        self.finish()
+
     def on_click(self, event):
         col = min(int(event.x // self.display_cell_w), self.cols - 1)
         row = min(int(event.y // self.display_cell_h), self.rows - 1)
@@ -435,15 +466,18 @@ class GridSelector:
         self._draw_selection()
 
     def finish(self, event=None):
+        self._confirm_keys_down.clear()
         self.action = "confirm"
         self.root.quit()
 
     def skip(self, event=None):
+        self._confirm_keys_down.clear()
         self.action = "skip"
         self.selected_cells = []
         self.root.quit()
 
     def quit_episode(self, event=None):
+        self._confirm_keys_down.clear()
         self.action = "quit"
         self.selected_cells = []
         self.root.quit()
