@@ -9,7 +9,13 @@ from lerobot.policies.factory import make_policy, make_pre_post_processors
 
 #%%
 # ハードコードされたパラメータ
-policy_id = "AriRyo/gray-pickplace-v3_act-policy"  # Hugging Face上のポリシーID（例: AriRyo/pickplace-v3_merged_act-policy）
+# policy_id = "AriRyo/redblack-pickplace-v3_black_act-da-e0-baseline"  # Hugging Face上のポリシーID（例: AriRyo/pickplace-v3_merged_act-policy）
+# policy_id = "AriRyo/redblack-pickplace-v3_black_act-da-e1-brightness"  # Hugging Face上のポリシーID（例: AriRyo/pickplace-v3_merged_act-policy）
+# policy_id = "AriRyo/redblack-pickplace-v3_black_act-da-e1-contrast"
+# policy_id = "AriRyo/redblack-pickplace-v3_black_act-da-e1-hue"
+# policy_id = "AriRyo/redblack-pickplace-v3_black_act-da-e1-sharpness"
+# policy_id = "AriRyo/redblack-pickplace-v3_black_act-da-e1-affine"
+policy_id = "AriRyo/redblack-pickplace-v3_black_act-da-e2-fullstack"
 eval_repo = "AriRyo/val-pickplace-v3_merge"  # Hugging Face上の評価用データセットID
 batch_size = 16
 num_workers = max(os.cpu_count() // 2, 1)
