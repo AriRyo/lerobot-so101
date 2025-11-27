@@ -103,6 +103,30 @@ lerobot-train \
     --batch_size=32
 
 
+Pi0/Pi05 LoRA fine-tuning
+
+scripts/apply_pi0_peft.py \
+    --dataset.repo_id=AriRyo/redblack-pickplace-v3 \
+    --policy.type=pi05 \
+    --output_dir=./outputs/pi05_redblack_lora \
+    --job_name=pi05_redblack_lora \
+    --policy.repo_id=AriRyo/redblack-pickplace-v3_pi05-lora \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --wandb.enable=true \
+    --policy.dtype=bfloat16 \
+    --steps=3000 \
+    --policy.device=cuda \
+    --batch_size=32 \
+    --lora_push_to_hub=true \
+    --lora_repo_id=AriRyo/redblack-pickplace-v3_pi05-lora
+
+LoRA版では自動的にPALIGEMMA/GEMMAにPEFTアダプタを挿入し、学習後に
+`<output_dir>/lora_adapters/`へ `paligemma/` と `gemma_expert/` の2フォルダが出力されます。
+`--lora_merge_full_policy=true` を付けると LoRA をベースモデルへマージしたチェックポイントも保存されます。
+
+
 
 推論のコマンド
 
