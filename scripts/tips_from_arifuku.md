@@ -2,14 +2,14 @@
 テレオペのコマンド
 
 
-
+```
 lerobot-teleoperate --robot.type=so101_follower   --robot.port=/dev/ttyACM0  --robot.id=my_follower_arm --teleop.type=so101_leader  --teleop.port=/dev/ttyACM1 --teleop.id=my_leader_arm
-
+```
 
 
 データ収集のコマンド
 
-
+```
 lerobot-record \
     --robot.type=so101_follower \
     --robot.port=/dev/ttyACM0 \
@@ -26,10 +26,11 @@ lerobot-record \
     --dataset.reset_time_s=5 \
     --dataset.push_to_hub=true \
     --resume=true
-
+```
 
 赤黒のデータ収集コマンド
 
+```
 lerobot-record \
     --robot.type=so101_follower \
     --robot.port=/dev/ttyACM0 \
@@ -46,14 +47,17 @@ lerobot-record \
     --dataset.reset_time_s=5 \
     --dataset.push_to_hub=true \
     --resume=true
+```
 
 
 データセットのマージコマンド
+```
 lerobot-edit-dataset \
     --repo_id AriRyo/pickplace-v3_merged \
     --operation.type merge \
     --operation.repo_ids "['AriRyo/gray-pickplace-v3', 'AriRyo/redblack-pickplace-v3']" \
     --push_to_hub true
+```
 
 注意: LeRobot 0.4.1のバグ修正として、src/lerobot/datasets/dataset_tools.pyの259行目で
 video_files_size_in_mb=5000を設定しています（デフォルトは500MB）。
@@ -64,13 +68,18 @@ video_files_size_in_mb=5000を設定しています（デフォルトは500MB）
 学習コマンド
 ACT
 gray
+```
 nohup lerobot-train   --dataset.repo_id=AriRyo/gray-pickplace-v3   --policy.type=act   --output_dir=outputs/train/act_gray-pickplace-v3   --job_name=act_gray-pickplace-v3   --policy.device=cuda   --wandb.enable=true   --policy.repo_id=AriRyo/gray-pickplace-v3_act-policy > output.log &
+```
 
 redblack
+```
 lerobot-train   --dataset.repo_id=AriRyo/redblack-pickplace-v3   --policy.type=act   --output_dir=outputs/train/act_redblack-pickplace-v3   --job_name=act_redblack-pickplace-v3   --policy.device=cuda   --wandb.enable=true   --policy.repo_id=AriRyo/redblack-pickplace-v3_act-policy --steps=100000
+```
 
 PI05(lerobot)
 gray
+```
 lerobot-train \
     --dataset.repo_id=AriRyo/gray-pickplace-v3 \
     --policy.type=pi05 \
@@ -85,8 +94,10 @@ lerobot-train \
     --steps=5000 \
     --policy.device=cuda \
     --batch_size=32
+```
 
 redblack
+```
 lerobot-train \
     --dataset.repo_id=AriRyo/redblack-pickplace-v3 \
     --policy.type=pi05 \
@@ -101,10 +112,12 @@ lerobot-train \
     --steps=5000 \
     --policy.device=cuda \
     --batch_size=32
+```
 
 
 Pi0/Pi05 LoRA fine-tuning
 
+```
 scripts/apply_pi0_peft.py \
     --dataset.repo_id=AriRyo/redblack-pickplace-v3 \
     --policy.type=pi05 \
@@ -121,6 +134,7 @@ scripts/apply_pi0_peft.py \
     --batch_size=32 \
     --lora_push_to_hub=true \
     --lora_repo_id=AriRyo/redblack-pickplace-v3_pi05-lora
+```
 
 LoRA版では自動的にPALIGEMMA/GEMMAにPEFTアダプタを挿入し、学習後に
 `<output_dir>/lora_adapters/`へ `paligemma/` と `gemma_expert/` の2フォルダが出力されます。
@@ -130,9 +144,11 @@ LoRA版では自動的にPALIGEMMA/GEMMAにPEFTアダプタを挿入し、学習
 
 推論のコマンド
 
+```
 rm -rf /home/arifuku/.cache/huggingface/lerobot/AriRyo/eval_gray-pickplace-v2/
 
 lerobot-record     --robot.type=so101_follower     --robot.port=/dev/ttyACM1     --robot.id=my_follower_arm     --robot.cameras="{ above: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30}, side: {type: opencv, index_or_path: 2, width: 640, height: 480, fps: 30}}"  --display_data=false     --dataset.repo_id=AriRyo/eval_gray-pickplace-v2     --dataset.num_episodes=3     --dataset.single_task="Pick the gray cube and place it on the circle."     --dataset.episode_time_s=30     --dataset.reset_time_s=10     --dataset.push_to_hub=false --policy.path=AriRyo/gray-pickplace-v2_act-policy --resume=true
+```
 
 
 
@@ -261,3 +277,32 @@ lerobot-imgtransform-viz \
 ### 6. 評価手順
 学習完了後は `scripts/eval_policy.py` の `policy_id` と `eval_repo` を対象モデルに書き換えて実行。
 別リポジトリで評価する場合は `LeRobotDataset(eval_repo)` が読み取れるか事前確認。
+
+```
+# LoRAファインチューニングのサンプルコマンド
+python scripts/train_pi05_lora.py \
+    --dataset.repo_id=AriRyo/pickplace-v3_merged \
+    --policy.type=pi05 \
+    --output_dir=./outputs/train/peft/pi05_lora_training \
+    --job_name=pi05_lora_training \
+    --policy.repo_id=AriRyo/pickplace-v3_merged_pi05_lora \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=false \
+    --wandb.enable=true \
+    --policy.dtype=bfloat16 \
+    --steps=3000 \
+    --policy.device=cuda \
+    --batch_size=16
+
+```
+
+このスクリプトでは、
+make_policy で pi05 ベースモデルをロード
+すぐ後に apply_pi05_lora(policy) で LoRA を挿入し、lora_ だけ requires_grad=True
+その状態で make_optimizer_and_scheduler を呼ぶので、optimizer は LoRA パラメータだけを更新
+学習ループ・eval・チェックポイント保存は lerobot_train.py と同じ
+
+
+nohupコマンド
+nohup コマンド > output.log 2>&1 &
