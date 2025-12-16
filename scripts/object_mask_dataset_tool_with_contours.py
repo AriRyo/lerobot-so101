@@ -66,8 +66,8 @@ def show_preview(images: list[np.ndarray], titles: list[str], window_title: str)
     root.mainloop()
 
 
-repo_id = "AriRyo/redblack-pickplace-v3_black"
-new_repo_id = "AriRyo/black-pickplace-v3_da"
+repo_id = "AriRyo/pickplace-v4_black"
+new_repo_id = "AriRyo/pickplace-v4_black"
 episode_indices: list[int] = []
 
 augmentation_levels = [20, 50, 80, 100]
@@ -1658,9 +1658,9 @@ def run_annotation(ds: LeRobotDataset, datasets: dict[str, LeRobotDataset]) -> N
             print("push_to_hub=False のため、アップロードはスキップしました。")
 
     # 完了したので進捗ファイルは削除
-    if os.path.exists(PROGRESS_PATH):
-        os.remove(PROGRESS_PATH)
-        print(f"{PROGRESS_PATH} を削除しました。")
+    # if os.path.exists(PROGRESS_PATH):
+    #     os.remove(PROGRESS_PATH)
+    #     print(f"{PROGRESS_PATH} を削除しました。")
 
 
 def main() -> None:
