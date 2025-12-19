@@ -98,8 +98,12 @@ def apply_pi05_lora(policy: PreTrainedPolicy) -> None:
 
     # get_peft_model はベースモデルを in-place で LoRA 化する
     # refs: HF PEFT docs 
-    get_peft_model(pal_module, pal_cfg)
-    get_peft_model(gemma_module, gemma_cfg)
+    policy.model.paligemma_with_expert.paligemma = get_peft_model(
+        policy.model.paligemma_with_expert.paligemma, pal_cfg
+    )
+    policy.model.paligemma_with_expert.gemma_expert = get_peft_model(
+        policy.model.paligemma_with_expert.gemma_expert, gemma_cfg
+    )
 
     # LoRA 以外を freeze（= requires_grad=False）、LoRA は trainable のまま
     for name, param in policy.named_parameters():
@@ -110,7 +114,33 @@ def apply_pi05_lora(policy: PreTrainedPolicy) -> None:
     num_total = sum(p.numel() for n, p in policy.named_parameters())
     logging.info(colored(f"[LoRA] trainable params: {num_lora} / {num_total}", "cyan", attrs=["bold"]))
 
+def assert_lora_injected_and_trainable(policy):
+    # 1) lora_ を含むパラメータが存在するか
+    lora_names = [n for n, _ in policy.named_parameters() if "lora_" in n]
+    assert len(lora_names) > 0, "LoRAパラメータが見つかりません（注入失敗の可能性）"
 
+    # 2) requires_grad=True が LoRA のみに限定されているか
+    trainable = [(n, p.numel()) for n, p in policy.named_parameters() if p.requires_grad]
+    assert len(trainable) > 0, "学習対象パラメータが0です（freezeしすぎ or LoRAなし）"
+    non_lora_trainable = [n for n, p in policy.named_parameters() if p.requires_grad and "lora_" not in n]
+    assert len(non_lora_trainable) == 0, f"LoRA以外が学習対象です: {non_lora_trainable[:5]}"
+
+    num_trainable = sum(n for _, n in trainable)
+    num_total = sum(p.numel() for _, p in policy.named_parameters())
+    logging.info(f"[DEBUG] trainable={num_trainable} / total={num_total}")
+    logging.info(f"[DEBUG] example lora params: {lora_names[:5]}")
+
+def debug_check_lora_grads(policy, max_print=5):
+    cnt = 0
+    for n, p in policy.named_parameters():
+        if "lora_" in n and p.requires_grad:
+            if p.grad is None:
+                raise RuntimeError(f"LoRA勾配がNoneです: {n}")
+            cnt += 1
+            if cnt <= max_print:
+                logging.info(f"[DEBUG] grad ok: {n}, grad_norm={p.grad.norm().item():.6f}")
+    logging.info(f"[DEBUG] checked {cnt} LoRA grads")
+    
 def update_policy(
     train_metrics: MetricsTracker,
     policy: PreTrainedPolicy,
@@ -132,6 +162,8 @@ def update_policy(
         loss, output_dict = policy.forward(batch)
 
     accelerator.backward(loss)
+    debug_check_lora_grads(policy)
+
 
     # 勾配クリッピング
     if grad_clip_norm > 0:
@@ -229,6 +261,7 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
     if is_main_process:
         logging.info(colored("[LoRA] Injecting LoRA adapters into Pi05 policy", "cyan", attrs=["bold"]))
     apply_pi05_lora(policy)
+    assert_lora_injected_and_trainable(policy)
 
     # processor 作成
     processor_kwargs = {}
