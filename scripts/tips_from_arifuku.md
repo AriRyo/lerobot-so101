@@ -308,8 +308,6 @@ python scripts/train_pi05_lora.py \
     --policy.device=cuda \
     --batch_size=7
 
-
-
 #そのままのpy05学習コマンド
 lerobot-train \
     --dataset.repo_id=AriRyo/pickplace-v4_black \
@@ -334,10 +332,13 @@ lerobot-train \
 
 
 XVLA
- lerobot-train   --dataset.repo_id=AriRyo/pickplace-v4_black   --output_dir=./outputs/test_xvla_so101_single   --job_name=xvla_so101_single   --policy.path="lerobot/xvla-base"   --policy.repo_id="AriRyo/test_xvla-so101-single-pickplace"   --steps=3000   --policy.device=cuda   --policy.freeze_vision_encoder=true   --policy.freeze_language_encoder=true   --policy.train_policy_transformer=true   --policy.train_soft_prompts=true   --policy.action_mode=auto --rename_map='{"observation.images.image": "observation.images.above", "observation.images.image2": "observation.images.side", "observation.images.empty_camera_0": "observation.images.side"}' --dataset.video_backend=pyav
+lerobot-train   --dataset.repo_id=AriRyo/pickplace-v4_black   --output_dir=./outputs/train/pickplace-v4_black_xvla_tf-sp   --job_name=pickplace-v4_black_xvla_tf-sp   --policy.path="lerobot/xvla-base"   --policy.repo_id="AriRyo/pickplace-v4_black_xvla_tf-sp"   --steps=6000   --policy.device=cuda   --policy.freeze_vision_encoder=true   --policy.freeze_language_encoder=true   --policy.train_policy_transformer=true   --policy.train_soft_prompts=true   --policy.action_mode=auto --rename_map='{"observation.images.above": "observation.images.image", "observation.images.side":  "observation.images.image2"}'  --dataset.video_backend=pyav --wandb.enable=true --wandb.disable_artifact=true
 
+lerobot-train   --dataset.repo_id=AriRyo/pickplace-v4_black   --output_dir=./outputs/train/pickplace-v4_black_xvla_tf-sp_10k   --job_name=pickplace-v4_black_xvla_tf-sp   --policy.path="lerobot/xvla-base"   --policy.repo_id="AriRyo/pickplace-v4_black_xvla_tf-sp_10k"   --steps=10000   --policy.device=cuda   --policy.freeze_vision_encoder=true   --policy.freeze_language_encoder=true   --policy.train_policy_transformer=true   --policy.train_soft_prompts=true   --policy.action_mode=auto --rename_map='{"observation.images.above": "observation.images.image", "observation.images.side":  "observation.images.image2"}'  --dataset.video_backend=pyav --wandb.enable=true --wandb.disable_artifact=true
 
+lerobot-train   --dataset.repo_id=AriRyo/pickplace-v4_black   --output_dir=./outputs/train/pickplace-v4_black_xvla_sp_10k   --job_name=pickplace-v4_black_xvla_sp   --policy.path="lerobot/xvla-base"   --policy.repo_id="AriRyo/pickplace-v4_black_xvla_sp_10k"   --steps=10000   --policy.device=cuda   --policy.freeze_vision_encoder=true   --policy.freeze_language_encoder=true   --policy.train_policy_transformer=false   --policy.train_soft_prompts=true   --policy.action_mode=auto --rename_map='{"observation.images.above": "observation.images.image", "observation.images.side":  "observation.images.image2"}'  --dataset.video_backend=pyav --wandb.enable=true --wandb.disable_artifact=true
 
+lerobot-train   --dataset.repo_id=AriRyo/pickplace-v4_black   --output_dir=./outputs/train/pickplace-v4_black_xvla_tf_10k   --job_name=pickplace-v4_black_xvla_tf   --policy.path="lerobot/xvla-base"   --policy.repo_id="AriRyo/pickplace-v4_black_xvla_tf_10k"   --steps=10000   --policy.device=cuda   --policy.freeze_vision_encoder=true   --policy.freeze_language_encoder=true   --policy.train_policy_transformer=true   --policy.train_soft_prompts=false   --policy.action_mode=auto --rename_map='{"observation.images.above": "observation.images.image", "observation.images.side":  "observation.images.image2"}'  --dataset.video_backend=pyav --wandb.enable=true --wandb.disable_artifact=true
 
 
 
@@ -377,6 +378,30 @@ lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_gri
 lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_grid_swap_80   --job_name=pickplace-v4_black_grid_swap_80_act   --output_dir=outputs/train/act_da_grid/pickplace-v4_black_grid_swap_80   --policy.repo_id=AriRyo/pickplace-v4_black_grid_swap_80_act-policy
 # swap 100%
 lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_grid_swap_100   --job_name=pickplace-v4_black_grid_swap_100_act   --output_dir=outputs/train/act_da_grid/pickplace-v4_black_grid_swap_100   --policy.repo_id=AriRyo/pickplace-v4_black_grid_swap_100_act-policy
+
+
+
+
+lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_da_colored_grid_fill_5   --job_name=pickplace-v4_black_grid_fill_5_act   --output_dir=outputs/train/act_da_colored/pickplace-v4_black_grid_fill_5   --policy.repo_id=AriRyo/pickplace-v4_black_colored_grid_fill_5_act
+
+lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_da_colored_grid_overlay_5   --job_name=pickplace-v4_black_grid_overlay_5_act   --output_dir=outputs/train/act_da_colored/pickplace-v4_black_grid_overlay_5   --policy.repo_id=AriRyo/pickplace-v4_black_colored_grid_overlay_5_act
+
+
+lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_da_colored_graph_fill_5   --job_name=pickplace-v4_black_graph_fill_5_act   --output_dir=outputs/train/act_da_colored/pickplace-v4_black_graph_fill_5   --policy.repo_id=AriRyo/pickplace-v4_black_colored_graph_fill_5_act
+
+lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_da_colored_graph_overlay_5   --job_name=pickplace-v4_black_graph_overlay_5_act   --output_dir=outputs/train/act_da_colored/pickplace-v4_black_graph_overlay_5   --policy.repo_id=AriRyo/pickplace-v4_black_colored_graph_overlay_5_act
+
+
+lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_da_colored_SLIC_fill_5   --job_name=pickplace-v4_black_slic_fill_5_act   --output_dir=outputs/train/act_da_colored/pickplace-v4_black_slic_fill_5   --policy.repo_id=AriRyo/pickplace-v4_black_colored_slic_fill_5_act
+
+lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_da_colored_SLIC_overlay_5   --job_name=pickplace-v4_black_slic_overlay_5_act   --output_dir=outputs/train/act_da_colored/pickplace-v4_black_slic_overlay_5   --policy.repo_id=AriRyo/pickplace-v4_black_colored_slic_overlay_5_act
+
+
+lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_da_colored_ms_fill_5   --job_name=pickplace-v4_black_meanshift_fill_5_act   --output_dir=outputs/train/act_da_colored/pickplace-v4_black_meanshift_fill_5   --policy.repo_id=AriRyo/pickplace-v4_black_colored_meanshift_fill_5_act
+
+lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_da_colored_ms_overlay_5   --job_name=pickplace-v4_black_meanshift_overlay_5_act   --output_dir=outputs/train/act_da_colored/pickplace-v4_black_meanshift_overlay_5   --policy.repo_id=AriRyo/pickplace-v4_black_colored_meanshift_overlay_5_act
+
+
 
 
 
