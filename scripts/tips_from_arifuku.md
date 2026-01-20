@@ -403,5 +403,26 @@ lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_da_
 
 
 
+lerobot-train \
+    --dataset.repo_id=AriRyo/pickplace-v4_black_da_colored_mean_shift_fill_5 \
+    --policy.type=pi05 \
+    --output_dir=./outputs/train/pi05_pickplace-v4_black_da_colored_ms_fill_5 \
+    --job_name=pi05_pickplace-v4_black_da_colored_ms_fill_5 \
+    --policy.repo_id=AriRyo/pi05_pickplace-v4_black_da_colored_ms_fill_5 \
+    --policy.pretrained_path=lerobot/pi05_base \
+    --policy.compile_model=true \
+    --policy.gradient_checkpointing=true \
+    --policy.push_to_hub=true \
+    --wandb.enable=true \
+    --wandb.disable_artifact=true \
+    --policy.dtype=bfloat16 \
+    --dataset.video_backend=pyav \
+    --save_checkpoint=true \
+    --steps=5000 \
+    --policy.device=cuda \
+    --batch_size=32
+
+
+
 
 
