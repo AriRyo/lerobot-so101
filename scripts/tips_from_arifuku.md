@@ -426,3 +426,38 @@ lerobot-train \
 
 
 
+
+
+lerobot-record \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM1 \
+    --robot.id=my_follower_arm \
+    --robot.cameras="{ above: {type: opencv, index_or_path: 4, width: 640, height: 480, fps: 30}, side: {type: opencv, index_or_path: 2, width: 640, height: 480, fps: 30}}" \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/so101_leader2 \
+    --teleop.id=my_leader_arm \
+    --display_data=true \
+    --dataset.repo_id=AriRyo/fold_towel_202601 \
+    --dataset.num_episodes=56 \
+    --dataset.single_task="Fold the hand towel, then put it back the way it was." \
+    --dataset.episode_time_s=200 \
+    --dataset.reset_time_s=1 \
+    --dataset.push_to_hub=true \
+    --resume=true
+
+lerobot-record \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM1 \
+    --robot.id=my_follower_arm \
+    --robot.cameras="{ above: {type: opencv, index_or_path: 4, width: 640, height: 480, fps: 30}, side: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30}}" \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/so101_leader2 \
+    --teleop.id=my_leader_arm \
+    --display_data=true \
+  --dataset.num_episodes=50 \
+  --dataset.episode_time_s=300 \
+  --dataset.reset_time_s=5 \
+  --dataset.push_to_hub=false \
+  --dataset.single_task="Fold the hand towel, then put it back the way it was." \
+  --dataset.repo_id=AriRyo/eval_policy \
+  --policy.path=AriRyo/pi05_fold_towel_202601 
