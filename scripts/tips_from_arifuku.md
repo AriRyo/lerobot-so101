@@ -461,3 +461,12 @@ lerobot-record \
   --dataset.single_task="Fold the hand towel, then put it back the way it was." \
   --dataset.repo_id=AriRyo/eval_policy \
   --policy.path=AriRyo/pi05_fold_towel_202601 
+
+python src/lerobot/data_processing/sarm_annotations/subtask_annotation.py \
+  --repo-id pi05_fold_towel_202601  \
+  --sparse-subtasks "Fold the towel,Stop,Unfold the towel" \
+  --dense-subtasks "Grab side and do 1st fold,Grab side and do 2nd fold,Arrange,Stop,Grab side and do 1st unfold,Grab side and do 2nd unfold,Arrange,Stop" \
+  --video-key observation.images.above \
+  --push-to-hub
+
+
