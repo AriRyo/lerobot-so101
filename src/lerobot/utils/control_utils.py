@@ -115,7 +115,7 @@ def predict_action(
     return action
 
 
-def init_keyboard_listener():
+def init_keyboard_listener(intervention_key: str | None = None):
     """
     Initializes a non-blocking keyboard listener for real-time user interaction.
 
@@ -135,6 +135,7 @@ def init_keyboard_listener():
     events["exit_early"] = False
     events["rerecord_episode"] = False
     events["stop_recording"] = False
+    events["intervene"] = False
 
     if is_headless():
         logging.warning(
@@ -145,6 +146,15 @@ def init_keyboard_listener():
 
     # Only import pynput if not in a headless environment
     from pynput import keyboard
+
+    def matches_intervention_key(key) -> bool:
+        if intervention_key is None:
+            return False
+        if intervention_key == "space":
+            return key == keyboard.Key.space
+        if len(intervention_key) == 1:
+            return key == keyboard.KeyCode.from_char(intervention_key)
+        return False
 
     def on_press(key):
         try:
@@ -159,10 +169,19 @@ def init_keyboard_listener():
                 print("Escape key pressed. Stopping data recording...")
                 events["stop_recording"] = True
                 events["exit_early"] = True
+            elif matches_intervention_key(key):
+                events["intervene"] = True
         except Exception as e:
             print(f"Error handling key press: {e}")
 
-    listener = keyboard.Listener(on_press=on_press)
+    def on_release(key):
+        try:
+            if matches_intervention_key(key):
+                events["intervene"] = False
+        except Exception as e:
+            print(f"Error handling key release: {e}")
+
+    listener = keyboard.Listener(on_press=on_press, on_release=on_release)
     listener.start()
 
     return listener, events

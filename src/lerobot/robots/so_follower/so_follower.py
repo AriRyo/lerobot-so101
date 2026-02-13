@@ -68,6 +68,13 @@ class SOFollower(Robot):
         return {f"{motor}.pos": float for motor in self.bus.motors}
 
     @property
+    def _motors_obs_ft(self) -> dict[str, type]:
+        motors_ft = self._motors_ft
+        current_ft = {f"{motor}.current": float for motor in self.bus.motors}
+        load_ft = {f"{motor}.load": float for motor in self.bus.motors}
+        return {**motors_ft, **current_ft, **load_ft}
+
+    @property
     def _cameras_ft(self) -> dict[str, tuple]:
         return {
             cam: (self.config.cameras[cam].height, self.config.cameras[cam].width, 3) for cam in self.cameras
@@ -75,7 +82,7 @@ class SOFollower(Robot):
 
     @cached_property
     def observation_features(self) -> dict[str, type | tuple]:
-        return {**self._motors_ft, **self._cameras_ft}
+        return {**self._motors_obs_ft, **self._cameras_ft}
 
     @cached_property
     def action_features(self) -> dict[str, type]:
@@ -183,6 +190,12 @@ class SOFollower(Robot):
         obs_dict = {f"{motor}.pos": val for motor, val in obs_dict.items()}
         dt_ms = (time.perf_counter() - start) * 1e3
         logger.debug(f"{self} read state: {dt_ms:.1f}ms")
+
+        current_dict = self.bus.sync_read("Present_Current")
+        obs_dict.update({f"{motor}.current": val for motor, val in current_dict.items()})
+
+        load_dict = self.bus.sync_read("Present_Load")
+        obs_dict.update({f"{motor}.load": val for motor, val in load_dict.items()})
 
         # Capture images from cameras
         for cam_key, cam in self.cameras.items():

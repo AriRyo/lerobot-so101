@@ -40,6 +40,8 @@ class SOLeader(Teleoperator):
     def __init__(self, config: SOLeaderTeleopConfig):
         super().__init__(config)
         self.config = config
+        self._feedback_torque_enabled = False
+        self._follow_torque_enabled = False
         norm_mode_body = MotorNormMode.DEGREES if config.use_degrees else MotorNormMode.RANGE_M100_100
         self.bus = FeetechMotorsBus(
             port=self.config.port,
@@ -60,7 +62,7 @@ class SOLeader(Teleoperator):
 
     @property
     def feedback_features(self) -> dict[str, type]:
-        return {}
+        return {f"{motor}.offset": float for motor in self.bus.motors}
 
     @property
     def is_connected(self) -> bool:
@@ -147,8 +149,49 @@ class SOLeader(Teleoperator):
         return action
 
     def send_feedback(self, feedback: dict[str, float]) -> None:
-        # TODO: Implement force feedback
-        raise NotImplementedError
+        offsets = {
+            key.removesuffix(".offset"): value
+            for key, value in feedback.items()
+            if key.endswith(".offset")
+        }
+        if not offsets:
+            return
+
+        if all(abs(value) <= 1e-6 for value in offsets.values()):
+            if self._feedback_torque_enabled:
+                self.bus.disable_torque()
+                self._feedback_torque_enabled = False
+            return
+
+        if not self._feedback_torque_enabled:
+            self.bus.enable_torque()
+            self._feedback_torque_enabled = True
+
+        present_pos = self.bus.sync_read("Present_Position")
+        goal_pos = {}
+        for motor, offset in offsets.items():
+            if motor not in present_pos:
+                continue
+            goal_pos[motor] = present_pos[motor] + offset
+
+        if goal_pos:
+            self.bus.sync_write("Goal_Position", goal_pos)
+
+    def send_follow_action(self, action: dict[str, float]) -> None:
+        goal_pos = {
+            key.removesuffix(".pos"): value for key, value in action.items() if key.endswith(".pos")
+        }
+        if not goal_pos:
+            if self._follow_torque_enabled:
+                self.bus.disable_torque()
+                self._follow_torque_enabled = False
+            return
+
+        if not self._follow_torque_enabled:
+            self.bus.enable_torque()
+            self._follow_torque_enabled = True
+
+        self.bus.sync_write("Goal_Position", goal_pos)
 
     @check_if_not_connected
     def disconnect(self) -> None:

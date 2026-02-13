@@ -75,6 +75,16 @@ class BiSOFollower(Robot):
         }
 
     @property
+    def _motors_obs_ft(self) -> dict[str, type]:
+        left_arm_motors_ft = self.left_arm._motors_obs_ft
+        right_arm_motors_ft = self.right_arm._motors_obs_ft
+
+        return {
+            **{f"left_{k}": v for k, v in left_arm_motors_ft.items()},
+            **{f"right_{k}": v for k, v in right_arm_motors_ft.items()},
+        }
+
+    @property
     def _cameras_ft(self) -> dict[str, tuple]:
         left_arm_cameras_ft = self.left_arm._cameras_ft
         right_arm_cameras_ft = self.right_arm._cameras_ft
@@ -86,7 +96,7 @@ class BiSOFollower(Robot):
 
     @cached_property
     def observation_features(self) -> dict[str, type | tuple]:
-        return {**self._motors_ft, **self._cameras_ft}
+        return {**self._motors_obs_ft, **self._cameras_ft}
 
     @cached_property
     def action_features(self) -> dict[str, type]:

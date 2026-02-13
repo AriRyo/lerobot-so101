@@ -53,7 +53,7 @@ lerobot-teleoperate \
 
 import logging
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pprint import pformat
 
 import rerun as rr
@@ -98,6 +98,12 @@ from lerobot.teleoperators import (  # noqa: F401
     so_leader,
     unitree_g1,
 )
+from lerobot.utils.force_feedback import (
+    ForceFeedbackConfig,
+    ForceFeedbackController,
+    build_offset_feedback,
+    extract_force_signals,
+)
 from lerobot.utils.import_utils import register_third_party_plugins
 from lerobot.utils.robot_utils import precise_sleep
 from lerobot.utils.utils import init_logging, move_cursor_up
@@ -120,6 +126,8 @@ class TeleoperateConfig:
     display_port: int | None = None
     # Whether to  display compressed images in Rerun
     display_compressed_images: bool = False
+    # Force feedback configuration for teleoperation
+    force_feedback: ForceFeedbackConfig = field(default_factory=ForceFeedbackConfig)
 
 
 def teleop_loop(
@@ -132,6 +140,7 @@ def teleop_loop(
     display_data: bool = False,
     duration: float | None = None,
     display_compressed_images: bool = False,
+    force_feedback_cfg: ForceFeedbackConfig | None = None,
 ):
     """
     This function continuously reads actions from a teleoperation device, processes them through optional
@@ -151,6 +160,17 @@ def teleop_loop(
     """
 
     display_len = max(len(key) for key in robot.action_features)
+    feedback_controller = None
+    feedback_joint_names: list[str] = []
+    last_feedback_t: float | None = None
+    if force_feedback_cfg is not None and force_feedback_cfg.enable:
+        if force_feedback_cfg.source not in {"current", "load"}:
+            raise ValueError("force_feedback.source must be 'current' or 'load'.")
+        feedback_joint_names = sorted(
+            {key.removesuffix(".pos") for key in teleop.action_features if key.endswith(".pos")}
+        )
+        if feedback_joint_names and teleop.feedback_features:
+            feedback_controller = ForceFeedbackController(feedback_joint_names, force_feedback_cfg)
     start = time.perf_counter()
 
     while True:
@@ -161,6 +181,14 @@ def teleop_loop(
         # teleop_action_processor can take None as an observation
         # given that it is the identity processor as default
         obs = robot.get_observation()
+
+        if feedback_controller is not None:
+            now = time.perf_counter()
+            dt_feedback = (now - last_feedback_t) if last_feedback_t is not None else (1 / fps)
+            last_feedback_t = now
+            signals = extract_force_signals(obs, feedback_joint_names, force_feedback_cfg.source)
+            offsets = feedback_controller.update(signals, dt_feedback)
+            teleop.send_feedback(build_offset_feedback(offsets))
 
         # Get teleop action
         raw_action = teleop.get_action()
@@ -231,6 +259,7 @@ def teleoperate(cfg: TeleoperateConfig):
             robot_action_processor=robot_action_processor,
             robot_observation_processor=robot_observation_processor,
             display_compressed_images=display_compressed_images,
+            force_feedback_cfg=cfg.force_feedback,
         )
     except KeyboardInterrupt:
         pass

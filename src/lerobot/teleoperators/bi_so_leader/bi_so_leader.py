@@ -66,7 +66,13 @@ class BiSOLeader(Teleoperator):
 
     @cached_property
     def feedback_features(self) -> dict[str, type]:
-        return {}
+        left_arm_features = self.left_arm.feedback_features
+        right_arm_features = self.right_arm.feedback_features
+
+        return {
+            **{f"left_{k}": v for k, v in left_arm_features.items()},
+            **{f"right_{k}": v for k, v in right_arm_features.items()},
+        }
 
     @property
     def is_connected(self) -> bool:
@@ -107,8 +113,36 @@ class BiSOLeader(Teleoperator):
         return action_dict
 
     def send_feedback(self, feedback: dict[str, float]) -> None:
-        # TODO: Implement force feedback
-        raise NotImplementedError
+        left_feedback = {
+            key.removeprefix("left_"): value
+            for key, value in feedback.items()
+            if key.startswith("left_")
+        }
+        right_feedback = {
+            key.removeprefix("right_"): value
+            for key, value in feedback.items()
+            if key.startswith("right_")
+        }
+
+        if left_feedback:
+            self.left_arm.send_feedback(left_feedback)
+        if right_feedback:
+            self.right_arm.send_feedback(right_feedback)
+
+    def send_follow_action(self, action: dict[str, float]) -> None:
+        left_action = {
+            key.removeprefix("left_"): value
+            for key, value in action.items()
+            if key.startswith("left_")
+        }
+        right_action = {
+            key.removeprefix("right_"): value
+            for key, value in action.items()
+            if key.startswith("right_")
+        }
+
+        self.left_arm.send_follow_action(left_action)
+        self.right_arm.send_follow_action(right_action)
 
     def disconnect(self) -> None:
         self.left_arm.disconnect()
