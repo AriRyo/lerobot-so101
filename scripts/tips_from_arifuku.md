@@ -404,19 +404,17 @@ lerobot-train   $CLIP_ACT_ARGS   --dataset.repo_id=AriRyo/pickplace-v4_black_da_
 
 
 lerobot-train \
-    --dataset.repo_id=AriRyo/pickplace-v4_black_da_colored_mean_shift_fill_5 \
+    --dataset.repo_id=AriRyo/fold_towel_20260213 \
     --policy.type=pi05 \
-    --output_dir=./outputs/train/pi05_pickplace-v4_black_da_colored_ms_fill_5 \
-    --job_name=pi05_pickplace-v4_black_da_colored_ms_fill_5 \
-    --policy.repo_id=AriRyo/pi05_pickplace-v4_black_da_colored_ms_fill_5 \
+    --output_dir=./outputs/train/pi05_fold_towel_20260213 \
+    --job_name=pi05_fold_towel_20260213 \
+    --policy.repo_id=AriRyo/pi05_fold_towel_20260213 \
     --policy.pretrained_path=lerobot/pi05_base \
-    --policy.compile_model=true \
     --policy.gradient_checkpointing=true \
     --policy.push_to_hub=true \
     --wandb.enable=true \
     --wandb.disable_artifact=true \
     --policy.dtype=bfloat16 \
-    --dataset.video_backend=pyav \
     --save_checkpoint=true \
     --steps=5000 \
     --policy.device=cuda \
@@ -469,4 +467,16 @@ python src/lerobot/data_processing/sarm_annotations/subtask_annotation.py \
   --video-key observation.images.above \
   --push-to-hub
 
+
+python src/lerobot/scripts/lerobot_train.py \
+  --dataset.repo_id=AriRyo/fold_towel_20260213 \
+  --policy.type=sarm \
+  --policy.annotation_mode=single_stage \
+  --policy.image_key=observation.images.above \
+  --output_dir=outputs/train/sarm_fold_towel_above20260213 \
+  --batch_size=32 \
+  --steps=5000 \
+  --wandb.enable=true \
+  --wandb.project=sarm \
+  --policy.repo_id=AriRyo/sarm_fold_towel_above20260213 
 
