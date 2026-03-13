@@ -77,7 +77,7 @@ from pydantic import BaseModel, Field
 from transformers import AutoProcessor, Qwen3VLMoeForConditionalGeneration
 
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
-
+from lerobot.datasets.video_utils import decode_video_frames 
 
 # Pydantic Models for SARM Subtask Annotation
 class Timestamp(BaseModel):
@@ -477,14 +477,32 @@ def timestamp_to_seconds(timestamp: str) -> float:
 
 
 def extract_frame(video_path: Path, timestamp: float) -> np.ndarray | None:
-    """Extract a single frame from video at given timestamp."""
-    cap = cv2.VideoCapture(str(video_path))
-    if not cap.isOpened():
+    """Extract a single frame from video at given timestamp.
+
+    LeRobot の video_utils.decode_video_frames を使って AV1 も含めて確実にデコードする。
+    """
+    try:
+        # tolerance_s は可視化なのでかなり緩めで良い（0.5秒以内の最も近いフレームを取る）
+        frames = decode_video_frames(
+            video_path=video_path,
+            timestamps=[timestamp],
+            tolerance_s=0.5,
+            backend=None,  # デフォルト: torchcodec があればそれ、なければ pyav
+        )
+    except Exception as e:
+        print(f"Failed to decode frame at t={timestamp:.3f}s from {video_path}: {e}")
         return None
-    cap.set(cv2.CAP_PROP_POS_MSEC, timestamp * 1000)
-    ret, frame = cap.read()
-    cap.release()
-    return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) if ret else None
+
+    if frames is None or len(frames) == 0:
+        return None
+
+    # decode_video_frames は [T, C, H, W] 形式の float32 (0〜1) を返す想定
+    frame_tensor = frames[0]  # 1枚だけなので 0 番目を取る
+    frame_tensor = (frame_tensor * 255.0).clamp(0, 255).to(torch.uint8)
+    # [C, H, W] -> [H, W, C] に並び替えて numpy に変換
+    frame = frame_tensor.permute(1, 2, 0).cpu().numpy()
+
+    return frame
 
 
 def draw_timeline(ax, subtasks, total_duration, colors):
