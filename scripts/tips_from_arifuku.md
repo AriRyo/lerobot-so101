@@ -478,5 +478,32 @@ python src/lerobot/scripts/lerobot_train.py \
   --steps=5000 \
   --wandb.enable=true \
   --wandb.project=sarm \
-  --policy.repo_id=AriRyo/sarm_fold_towel_above20260213 
+  --policy.repo_id=AriRyo/sarm_fold_towel_above20260213 \
+  --policy.push_to_hub=true
+
+
+python src/lerobot/policies/sarm/compute_rabc_weights.py \
+  --dataset-repo-id AriRyo/fold_towel_20260213 \
+  --reward-model-path AriRyo/sarm_fold_towel_above20260213 \
+  --head-mode sparse \
+  --num-visualizations 5 \
+  --push-to-hub
+
+python src/lerobot/scripts/lerobot_train.py \
+  --dataset.repo_id=AriRyo/fold_towel_20260213 \
+  --policy.type=pi05 \
+  --use_rabc=true \
+    --job_name=pi05_rabc_fold_towel_20260213 \
+    --policy.repo_id=AriRyo/pi05_rabc_fold_towel_20260213 \
+  --rabc_head_mode=sparse \
+  --rabc_kappa=0.01 \
+  --output_dir=outputs/train/pi05_rabc \
+    --policy.push_to_hub=true \
+    --wandb.enable=true \
+    --wandb.disable_artifact=true \
+    --policy.dtype=bfloat16 \
+  --batch_size=6 \
+  --steps=5000
+
+
 
